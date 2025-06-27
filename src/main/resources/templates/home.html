@@ -1,0 +1,18 @@
+<div th:replace="~{fragments/header :: header}"></div>
+
+<div class="alert alert-info" sec:authorize="hasRole('ADMIN')">
+    <h4>Bienvenido, Administrador</h4>
+    <p>Puedes gestionar empleados y tareas.</p>
+</div>
+
+<div class="alert alert-warning" sec:authorize="hasRole('COORDINADOR')">
+    <h4>Bienvenido, Coordinador</h4>
+    <p>Puedes editar y consultar registros.</p>
+</div>
+
+<div class="alert alert-secondary" sec:authorize="hasRole('SECRETARIO')">
+    <h4>Bienvenido, Secretario</h4>
+    <p>Puedes consultar registros.</p>
+</div>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
