@@ -10,65 +10,56 @@ package com.example.roles_permisos.controller;
  */
 
 import com.example.roles_permisos.model.Empleado;
-import com.example.roles_permisos.model.Rol;
 import com.example.roles_permisos.service.EmpleadoService;
-import org.springframework.security.access.annotation.Secured;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
 
-@Controller
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
+
+@RestController
 @RequestMapping("/empleados")
 public class EmpleadoController {
-
-    private final EmpleadoService empleadoService;
-
-    public EmpleadoController(EmpleadoService empleadoService) {
-        this.empleadoService = empleadoService;
-    }
+    @Autowired
+    private EmpleadoService empleadoService;
 
     // Listar empleados (Accesible por ADMIN y COORDINADOR)
     @Secured({ "ROLE_ADMIN", "ROLE_COORDINADOR" })
     @GetMapping
-    public String listarEmpleados(Model model) {
-        model.addAttribute("empleados", empleadoService.findAll());
-        return "empleados/listar";
+    public List<Empleado> listarEmpleados() {
+        return empleadoService.findAll();
+
     }
 
-    // Mostrar formulario de creación (Solo ADMIN)
-    @Secured("ROLE_ADMIN")
-    @GetMapping("/crear")
-    public String mostrarFormularioCreacion(Model model) {
-        model.addAttribute("empleado", new Empleado());
-        model.addAttribute("roles", Rol.values());
-        return "empleados/crear";
+    @GetMapping("/{id}")
+    public Empleado empleado(@PathVariable Long id) {
+        return empleadoService.findById(id);
     }
 
     // Procesar creación de empleado (Solo ADMIN)
     @Secured("ROLE_ADMIN")
     @PostMapping("/crear")
-    public String crearEmpleado(@ModelAttribute Empleado empleado) {
+    public String crearEmpleado(@RequestBody Empleado empleado) {
         empleadoService.registrarEmpleado(empleado);
         return "redirect:/empleados";
-    }
-
-    // Mostrar formulario de edición (Solo ADMIN)
-    @Secured("ROLE_ADMIN")
-    @GetMapping("/editar/{id}")
-    public String mostrarFormularioEdicion(@PathVariable Long id, Model model) {
-        Empleado empleado = empleadoService.findById(id);
-        model.addAttribute("empleado", empleado);
-        model.addAttribute("roles", Rol.values());
-        return "empleados/editar";
     }
 
     // Procesar actualización de empleado (Solo ADMIN)
     @Secured("ROLE_ADMIN")
     @PostMapping("/editar/{id}")
-    public String actualizarEmpleado(@PathVariable Long id, @ModelAttribute Empleado empleado) {
+    public ResponseEntity<String> actualizarEmpleado(@PathVariable Long id, @RequestBody Empleado empleado) {
         empleado.setId(id);
         empleadoService.save(empleado);
-        return "redirect:/empleados";
+        return ResponseEntity.ok().body("Empleado actualizado correctamente.");
     }
 
     // Eliminar empleado (Solo ADMIN)

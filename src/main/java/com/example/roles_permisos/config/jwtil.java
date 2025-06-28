@@ -1,7 +1,10 @@
 package com.example.roles_permisos.config;
 
+import java.nio.charset.StandardCharsets;
+import java.security.Key;
 import java.util.Date;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.crypto.SecretKey;
 
@@ -19,17 +22,26 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @Slf4j
 public class jwtil {
-    private static final String secretKeyBase64 = "a2FzZGZqS0hGSkhGT0pIRUpPS0hKT0ZKS0pGS0pGS0pGS0pGS0o=";
-    private static final SecretKey key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKeyBase64));
+    private static final String secretKeyBase64 = "Esta llave es secreta y debe ser guardada de manera segura";
+
+    private final SecretKey key = Keys.hmacShaKeyFor(secretKeyBase64.getBytes(StandardCharsets.UTF_8));
 
     // Método para generar el JWT
     public String generateToken(UserDetails userDetails) {
 
-        return Jwts.builder()
-                .subject(userDetails.getUsername()) // Establecer el usuario como sujeto
+        return Jwts.builder().claims()
+                .subject(userDetails.getUsername())
+                .add("rol",
+                        userDetails.getAuthorities().stream().map(t -> t.getAuthority())
+                                .collect(Collectors.joining(",")))// Establecer
+                // el
+                // usuario
+                // como sujeto
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // Expiración en 10 horas
-                .signWith(key, SignatureAlgorithm.HS256).compact();
+                .and().signWith(key)
+                .compact();
+
     }
 
     // Método para extraer el nombre de usuario (subject) del token

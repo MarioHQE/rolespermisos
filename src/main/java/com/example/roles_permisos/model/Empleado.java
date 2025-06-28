@@ -18,6 +18,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -34,7 +37,7 @@ public class Empleado {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @NotBlank(message = "El nombre no puede estar vacío")
     @Size(min = 2, max = 50, message = "El nombre debe tener entre 2 y 50 caracteres")
     private String nombre;
@@ -53,10 +56,8 @@ public class Empleado {
     @OneToMany(mappedBy = "empleado", cascade = CascadeType.ALL)
     private List<Tarea> tareas = new ArrayList<>();
 
+    @JsonIgnore
     @OneToMany(mappedBy = "empleado", cascade = CascadeType.ALL)
     private List<Horario> horarios = new ArrayList<>();
 
-   
-    
-    
 }

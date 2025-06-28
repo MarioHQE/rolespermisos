@@ -8,6 +8,13 @@ import com.example.roles_permisos.model.Empleado;
 import com.example.roles_permisos.model.Horario;
 import com.example.roles_permisos.repository.EmpleadoRepository;
 import com.example.roles_permisos.repository.HorarioRepository;
+import com.example.roles_permisos.request.horarioasignarrequest;
+
+import jakarta.validation.Valid;
+
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,14 +23,16 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  *
  * @author PedroCoronado
  */
-@Controller
+@RestController
 @RequestMapping("/horarios")
 public class HorarioController {
 
@@ -39,48 +48,33 @@ public class HorarioController {
     @Secured("ROLE_ADMIN")
     @Transactional
     @PostMapping("/asignar")
-    public String asignarHorario(@ModelAttribute Horario horario, @RequestParam Long empleadoId) {
-        Empleado empleado = empleadoRepository.findById(empleadoId)
+    public ResponseEntity<String> asignarHorario(@Valid @RequestBody horarioasignarrequest horario) {
+        Empleado empleado = empleadoRepository.findById(horario.getEmpleadoId())
                 .orElseThrow(() -> new IllegalArgumentException("Empleado no encontrado"));
-
+        Horario horario2 = new Horario();
         if (empleado.getTareas().size() >= 5) {
             throw new IllegalStateException("Empleado ya tiene 5 tareas asignadas.");
         }
 
-        horario.setEmpleado(empleado);
-        horarioRepository.save(horario);
-        return "redirect:/horarios";
-    }
-
-    @Secured("ROLE_ADMIN")
-    @GetMapping("/asignar")
-    public String listaasignar(Model model) {
-        model.addAttribute("horario", new Horario());
-        model.addAttribute("empleados", empleadoRepository.findAll());
-        return "horarios/asignar";
+        horario2.setEmpleado(empleado);
+        horario2.setDia(horario.getDia());
+        horario2.setHoraFin(horario.getHoraFin());
+        horario2.setHoraInicio(horario.getHoraInicio());
+        horarioRepository.save(horario2);
+        return ResponseEntity.ok().body("Horario asignado correctamente.");
     }
 
     // COORDINADOR y SECRETARIO: ver todos los horarios
     @Secured({ "ROLE_COORDINADOR", "ROLE_SECRETARIO" })
     @GetMapping
-    public String listarHorarios(Model model) {
-        model.addAttribute("horarios", horarioRepository.findAll());
-        return "horarios/listar";
-    }
+    public List<Horario> listarHorarios() {
+        return horarioRepository.findAll();
 
-    // COORDINADOR puede editar
-    @Secured("ROLE_COORDINADOR")
-    @GetMapping("/editar/{id}")
-    public String editarHorario(@PathVariable Long id, Model model) {
-        Horario horario = horarioRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("ID inválido: " + id));
-        model.addAttribute("horario", horario);
-        return "horarios/editar";
     }
 
     @Secured("ROLE_COORDINADOR")
     @PostMapping("/editar/{id}")
-    public String guardarEdicion(@PathVariable Long id, @ModelAttribute Horario horarioActualizado) {
+    public ResponseEntity<String> guardarEdicion(@PathVariable Long id, @RequestBody Horario horarioActualizado) {
         Horario horario = horarioRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("ID inválido"));
 
@@ -89,6 +83,6 @@ public class HorarioController {
         horario.setHoraFin(horarioActualizado.getHoraFin());
 
         horarioRepository.save(horario);
-        return "redirect:/horarios";
+        return ResponseEntity.ok("Horario actualizado correctamente");
     }
 }

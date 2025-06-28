@@ -12,14 +12,24 @@ import com.example.roles_permisos.model.Empleado;
 import com.example.roles_permisos.model.Tarea;
 import com.example.roles_permisos.repository.EmpleadoRepository;
 import com.example.roles_permisos.repository.TareaRepository;
+import com.example.roles_permisos.request.Tareasignarrequest;
+import com.example.roles_permisos.response.TareaResponse;
 
+import jakarta.validation.Valid;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
-@Controller
+@RestController
 @RequestMapping("/tareas")
 public class TareaController {
 
@@ -34,31 +44,53 @@ public class TareaController {
     // Listar tareas (Accesible por todos los roles)
     @Secured({ "ROLE_ADMIN", "ROLE_COORDINADOR", "ROLE_SECRETARIO" })
     @GetMapping
-    public String listarTareas(Model model) {
-        model.addAttribute("tareas", tareaRepository.findAll());
+    public List<TareaResponse> listarTareas() {
+        List<TareaResponse> tareas = new ArrayList<>();
+        for (Tarea tarea : tareaRepository.findAll()) {
+            tareas.add(new TareaResponse(tarea.getId(), tarea.getDescripcion(), tarea.getEstado(), tarea.getFecha(),
+                    tarea.getEmpleado().getNombre()));
+        }
+        return tareas;
 
-        return "tareas/listar";
+    }
+
+    @GetMapping("/{idtarea}")
+    public TareaResponse obtenerTarea(@PathVariable long idtarea) {
+        tareaRepository.findById(idtarea).orElseThrow(() -> new IllegalArgumentException("Tarea no encontrada"));
+        TareaResponse tarea = new TareaResponse();
+        Tarea tarea2 = tareaRepository.findById(idtarea).get();
+        tarea.setId(tarea2.getId());
+        tarea.setDescripcion(tarea2.getDescripcion());
+        tarea.setEstado(tarea2.getEstado());
+        tarea.setFecha(tarea2.getFecha());
+        tarea.setEmpleado(tarea2.getEmpleado().getNombre());
+        return tarea;
     }
 
     // Asignar tarea (Solo ADMIN, con validación transaccional)
     @Secured("ROLE_ADMIN")
     @Transactional
     @PostMapping("/asignar")
-    public String asignarTarea(@RequestParam Long empleadoId, @ModelAttribute Tarea tarea) {
-        Empleado empleado = empleadoRepository.findById(empleadoId)
+    public ResponseEntity<String> asignarTarea(@Valid @RequestBody Tareasignarrequest tarea) {
+        Empleado empleado = empleadoRepository.findById(tarea.getEmpleadoId())
                 .orElseThrow(() -> new IllegalArgumentException("Empleado no encontrado"));
+        Tarea tarea2 = new Tarea();
         if (empleado.getTareas().size() >= 5) {
             throw new IllegalStateException("El empleado ya tiene 5 tareas asignadas.");
         }
-        tarea.setEmpleado(empleado);
-        tareaRepository.save(tarea);
+        tarea2.setEmpleado(empleado);
+        tarea2.setDescripcion(tarea.getDescripcion());
+        tarea2.setEstado(tarea.getEstado());
+        tarea2.setFecha(tarea.getFecha());
 
-        return "redirect:/tareas";
+        tareaRepository.save(tarea2);
+
+        return ResponseEntity.ok().body("Tarea asignada correctamente.");
     }
 
     @Secured("ROLE_ADMIN")
     @PostMapping("/editar/{id}")
-    public String editar(@PathVariable long id, @ModelAttribute Tarea tarea) {
+    public ResponseEntity<String> editar(@PathVariable long id, @ModelAttribute Tarea tarea) {
         Tarea tarea2 = tareaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Tarea no encontrada"));
         tarea2.setDescripcion(tarea.getDescripcion());
@@ -66,41 +98,15 @@ public class TareaController {
         tarea2.setEmpleado(tarea.getEmpleado());
         tarea2.setFecha(tarea.getFecha());
         tareaRepository.save(tarea2);
-        return "redirect:/tareas";
+        return ResponseEntity.ok().body("Tarea editada correctamente.");
 
     }
 
     @Secured("ROLE_ADMIN")
     @GetMapping("/eliminar/{id}")
-    public String eliminarTarea(@PathVariable Long id) {
+    public ResponseEntity<String> eliminarTarea(@PathVariable Long id) {
         tareaRepository.deleteById(id);
-        return "redirect:/tareas";
+        return ResponseEntity.ok().body("Tarea eliminada correctamente.");
     }
 
-    @Secured("ROLE_ADMIN")
-    @GetMapping("/editar/{id}")
-    public String mostrarFormularioEditar(@PathVariable Long id, Model model) {
-        Tarea tarea = tareaRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Tarea no encontrada"));
-        model.addAttribute("tarea", tarea);
-        model.addAttribute("empleados", empleadoRepository.findAll());
-
-        return "tareas/editar";
-    }
-
-    @Secured("ROLE_ADMIN")
-    @GetMapping("/asignar")
-    public String asignar(Model model) {
-        model.addAttribute("tarea", new Tarea());
-        model.addAttribute("empleados", empleadoRepository.findAll());
-        return "tareas/asignar";
-    }
-
-    // Consultas JPQL (Ejemplo: Tareas por empleado)
-    @Secured({ "ROLE_ADMIN", "ROLE_COORDINADOR", "ROLE_SECRETARIO" })
-    @GetMapping("/por-empleado/{id}")
-    public String tareasPorEmpleado(@PathVariable Long id, Model model) {
-        model.addAttribute("tareas", tareaRepository.findTareasByEmpleadoId(id));
-        return "tareas/consulta";
-    }
 }

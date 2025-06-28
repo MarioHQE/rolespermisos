@@ -44,6 +44,7 @@ public class EmpleadoService {
             } else if (!empleado.getPassword().isEmpty()) {
                 empleado.setPassword(passwordEncoder.encode(empleado.getPassword()));
             }
+
         }
         return empleadoRepository.save(empleado);
     }

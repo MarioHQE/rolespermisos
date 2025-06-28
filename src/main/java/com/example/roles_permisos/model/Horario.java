@@ -41,5 +41,5 @@ public class Horario {
     @ManyToOne
     @JoinColumn(name = "empleado_id")
     private Empleado empleado;
-}
 
+}
