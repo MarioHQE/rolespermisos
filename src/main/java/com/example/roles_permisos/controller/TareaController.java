@@ -13,6 +13,7 @@ import com.example.roles_permisos.model.Tarea;
 import com.example.roles_permisos.repository.EmpleadoRepository;
 import com.example.roles_permisos.repository.TareaRepository;
 import com.example.roles_permisos.request.Tareasignarrequest;
+import com.example.roles_permisos.request.tareaeditarrequest;
 import com.example.roles_permisos.response.TareaResponse;
 
 import jakarta.validation.Valid;
@@ -89,13 +90,15 @@ public class TareaController {
     }
 
     @Secured("ROLE_ADMIN")
-    @PostMapping("/editar/{id}")
-    public ResponseEntity<String> editar(@PathVariable long id, @ModelAttribute Tarea tarea) {
+    @PutMapping("/editar/{id}")
+    public ResponseEntity<String> editar(@PathVariable long id, @Valid @RequestBody tareaeditarrequest tarea) {
         Tarea tarea2 = tareaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Tarea no encontrada"));
+        Empleado empleado = empleadoRepository.findById(tarea.getEmpleadoid())
+                .orElseThrow(() -> new IllegalArgumentException("Empleado no encontrado"));
         tarea2.setDescripcion(tarea.getDescripcion());
         tarea2.setEstado(tarea.getEstado());
-        tarea2.setEmpleado(tarea.getEmpleado());
+        tarea2.setEmpleado(empleado);
         tarea2.setFecha(tarea.getFecha());
         tareaRepository.save(tarea2);
         return ResponseEntity.ok().body("Tarea editada correctamente.");
